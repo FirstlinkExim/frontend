@@ -1,0 +1,38 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --foreground-rgb: 0, 0, 0;
+  --background-start-rgb: 214, 219, 220;
+  --background-end-rgb: 255, 255, 255;
+}
+
+*, *::before, *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  overflow-x: hidden;
+}
+
+
+.container {
+  @apply max-w-7xl w-full mx-auto px-4
+}
+
+.PhoneInputInput {
+  border: none;
+  outline: none;
+  padding-left: 10px;
+  height: 100%;
+}
+
+.PhoneInputCountrySelect {
+  outline: none;
+}
+
+
+
