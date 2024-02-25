@@ -18,6 +18,10 @@ const nextConfig = {
             protocol: "https",
             hostname: "res.cloudinary.com",
           },
+          {
+            protocol: "https",
+            hostname: "firstlink-exim.s3.ap-south-1.amazonaws.com",
+          },
         ],
       },
 };

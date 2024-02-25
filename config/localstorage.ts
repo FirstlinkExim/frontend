@@ -1,15 +1,24 @@
 export const storeInLocalStorage = (key: string, value: any) => {
-  localStorage.setItem(key, value);
+  if (typeof window !== "undefined") {
+    localStorage.setItem(key, value);
+  }
 };
 
 export const lookInInLocalStorage = (key: string) => {
-  return localStorage.getItem(key);
+  if (typeof window !== "undefined") {
+    return localStorage.getItem(key);
+  }
+  return null; // or handle appropriately if localStorage is not available
 };
 
-export const removeFromLocalStorage= (key: string) => {
-  return localStorage.removeItem(key);
+export const removeFromLocalStorage = (key: string) => {
+  if (typeof window !== "undefined") {
+    localStorage.removeItem(key);
+  }
 };
 
 export const logoutUser = () => {
-  localStorage.clear();
+  if (typeof window !== "undefined") {
+    localStorage.clear();
+  }
 };

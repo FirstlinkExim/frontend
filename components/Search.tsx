@@ -4,14 +4,12 @@ import { IoSearch } from "react-icons/io5";
 
 interface SearchProps {
   placeholder?: string;
-  search: string;
-  setSearch: React.Dispatch<React.SetStateAction<string>>;
+  value: string;
+  onChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
-const Search: React.FC<SearchProps> = ({ placeholder, search, setSearch }) => {
-  const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setSearch(event.target.value);
-  };
+const Search: React.FC<SearchProps> = ({ placeholder, value, onChange }) => {
+ 
 
   return (
     <div className="relative max-w-xs md:w-[350px]">
@@ -22,8 +20,8 @@ const Search: React.FC<SearchProps> = ({ placeholder, search, setSearch }) => {
         type="text"
         name="hs-table-search"
         id="hs-table-search"
-        value={search}
-        onChange={handleChange}
+        value={value}
+        onChange={onChange}
         className="py-2 px-3 ps-9 block w-full border border-gray-200 shadow-sm rounded-lg text-sm focus:z-10 focus:border-primary focus:ring-primary disabled:opacity-50 disabled:pointer-events-none"
         placeholder={placeholder}
       />

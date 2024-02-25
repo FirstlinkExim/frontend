@@ -11,27 +11,39 @@ import NoData from "@/components/NoData";
 import SelectList from "@/components/inputs/Select";
 import { Pagination, Rating } from "@mui/material";
 import { IProduct } from "@/types";
-import useProducts from "@/hooks/useProducts";
+import useProducts from "@/hooks/queries/useProducts";
 import Search from "../Search";
 import Loading from "../Loading";
+import debounce from 'lodash/debounce'
 
 const ProductTable = () => {
   const router = useRouter();
   const [search, setSearch] = useState("");
-  const { products, isLoading } = useProducts();
-  const [selected, setSelected] = useState<number>(10);
+  const [page, setPage] = useState(1)
+  const [limit, setLimit] = useState(10)
+  
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearch(e.target.value);
+  };
+  const debounceSearch = debounce(handleSearchChange, 5000)
+
+
+  const { products, isLoading } = useProducts({ page, limit, query: search });
   if (!products) return;
+
+
 
   return (
     <div>
-      <Search placeholder="Serach..." search="" setSearch={setSearch} />
+      <Search placeholder="Serach..." value={search} onChange={handleSearchChange} />
       <div className="relative overflow-x-auto rounded-lg mt-4">
         {isLoading ? (
           <div className="h-[300px] flex items-center justify-center">
             <Loading />
           </div>
         ) : (
-          products?.length && (
+          products && products.length && (
             <>
               <table className="lg:w-full w-[900px] text-sm bg-white  shadow rounded-lg">
                 <thead className="text-xs text-gray-700 uppercase whitespace-nowrap h-14 bg-gray-100">
@@ -64,13 +76,13 @@ const ProductTable = () => {
                       key={index}
                       className="border border-r-0 border-t-0 border-l-0 border-b border-b-gray-200 hover:bg-gray-50 transition duration-300 cursor-pointer "
                     >
-                      <td className="px-6 py-3">{row.id}</td>
-                      <td className="px-6 py-3 text-center" key={index}>
+                      <td className="px-6 py-3 text-center">{index+1}</td>
+                      <td className="px-6 py-3 text-center">
                         <div className="flex items-center  gap-2">
                           <Image
                             width={36}
                             height={36}
-                            src={row.image}
+                            src={row.images[0]?.url}
                             alt={row.title}
                             className="w-9 h-9 rounded-full border object-cover"
                           />
@@ -80,17 +92,17 @@ const ProductTable = () => {
                         </div>
                       </td>
                       <td className="px-6 py-3">{row.category}</td>
-                      <td className="px-6 py-3">25</td>
+                      <td className="px-6 py-3 text-center">{row.stock}</td>
                       <td className="px-6 py-3">
                         <div className="flex items-center justify-center gap-2">
                           <Rating
                             name="half-rating"
-                            defaultValue={2.5}
+                            defaultValue={row.rating.rate}
                             precision={0.5}
                           />
 
                           <span className="text-slate-500 text-sm text-center">
-                            2.5
+                            {row.rating.count}
                           </span>
                         </div>
                       </td>
@@ -119,17 +131,17 @@ const ProductTable = () => {
           )
         )}
 
-        {!products.length && <NoData />}
+        {products.length === 0 ? <NoData />: null}
       </div>
 
-      {products?.length && (
+      {products?.length > 0 && (
         <div className="mb-6 mt-6 flex lg:items-center lg:justify-between lg:flex-row flex-col  gap-6">
           <div className="flex flex-row items-center gap-3">
             <p className="text-gray-400">Showing 1-10 out of 50</p>
             <SelectList
               options={[10, 15, 20, 25, 30]}
-              selected={selected}
-              onChange={setSelected}
+              selected={limit}
+              onChange={setLimit}
               width="80px"
             />
           </div>

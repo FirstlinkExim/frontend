@@ -12,23 +12,29 @@ import IconButton from "../buttons/IconButton";
 import { useRouter } from "next/navigation";
 import useLike from "@/hooks/useLike";
 import Link from "next/link";
-
+import { useAppDispatch } from "@/redux/hooks";
+import { addToCart, addToWishlist } from "@/redux/slices/productSlice";
+import formatPrice from "@/utils/formatPrice"
 interface ProductProps {
   product: IProduct;
 }
 const Product = ({ product }: ProductProps) => {
   const router = useRouter();
-  const { title, price, image, id } = product;
-  const { handleLike, isLike } = useLike({ productId: "1" });
+  const dispatch = useAppDispatch()
+  
+  const { title, price, images, _id, currency } = product;
+  const { handleProductWishlist, isLike } = useLike({ product, like: product.like });
 
-  const handleAddToCart = () => {};
+  const handleAddToCart = () => {
+    dispatch(addToCart(product))
+  };
 
   return (
     <div className="border border-gray-300 rounded relative">
-      <Link href={`/product/${id}`}>
+      <Link href={`/product/${_id}`}>
         <Image
-          src={image}
-          alt={`product-image-${id}`}
+          src={images[1].url}
+          alt={`product-image-${images[0]._id}`}
           width={300}
           height={300}
           className="w-full h-[200px] object-contain p-2"
@@ -44,19 +50,19 @@ const Product = ({ product }: ProductProps) => {
           readOnly
           size="small"
         />
-        <p className="font-medium">₹{price}</p>
+        <p className="font-medium">{formatPrice(price, currency)}</p>
       </div>
 
       <div className="absolute top-4 right-4 flex flex-col gap-2">
         <IconButton
           icon={isLike ? IoMdHeart : LuHeart}
-          onClick={handleLike}
+          onClick={handleProductWishlist}
           active={isLike}
         />
         <IconButton icon={BsCart2} onClick={handleAddToCart} />
         <IconButton
           icon={FiExternalLink}
-          onClick={() => router.push(`/product/${id}`)}
+          onClick={() => router.push(`/product/${_id}`)}
         />
       </div>
     </div>

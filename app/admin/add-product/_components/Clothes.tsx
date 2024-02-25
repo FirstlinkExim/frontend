@@ -1,23 +1,41 @@
 "use client";
 
 import React, { useCallback, useRef, useState } from "react";
-import Select from "../inputs/Select";
-import Input from "../inputs/Input";
+import Select from "../../../../components/inputs/Select";
+import Input from "../../../../components/inputs/Input";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Controller, useForm } from "react-hook-form";
 import { AddProductSchema } from "@/schemas";
 import UploadImage, { UploadImageRef } from "./UploadImage";
-import TextArea from "../inputs/TextArea";
+import TextArea from "../../../../components/inputs/TextArea";
 import useGeoLocation from "@/hooks/useGeoLocation";
 import symbols from "@/data/country-symbol.json";
-import Button from "../buttons/Button";
+import Button from "../../../../components/buttons/Button";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "react-toastify";
+import useAxiosPrivate from "@/hooks/useAxiosPrivate";
 type Schema = z.infer<typeof AddProductSchema>;
 
-const AddProduct = () => {
+const ClothesProduct = () => {
   const uploadImageRef = useRef<UploadImageRef>(null);
-  useGeoLocation();
   const [size, setSize] = useState("");
+  const axiosPrivate = useAxiosPrivate()
+  const queryClient = useQueryClient();
+  const { mutateAsync: addProductMutation } = useMutation({
+    mutationFn: async (data: any) => {
+      const response = await axiosPrivate.post("/products", data)
+    },
+    onError: (err: any) => toast.error(err?.response?.data.message),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["products"],
+      });
+      toast.success(`Product added successfully`);
+    },
+    
+  });
+
   const {
     register,
     handleSubmit,
@@ -27,7 +45,7 @@ const AddProduct = () => {
     resolver: zodResolver(AddProductSchema),
   });
 
-  const onSubmit = (values: Schema) => {
+  const onSubmit = async (values: Schema) => {
     if (uploadImageRef.current?.handleValidate()) {
       return true;
     }
@@ -36,7 +54,11 @@ const AddProduct = () => {
       ...values,
       size: size,
       images: uploadImageRef.current?.images,
+     color: values.color.toLowerCase().trim().split(",").map((color: string) => color.trim())
     };
+    
+    await addProductMutation(responseData)
+    
   };
 
   return (
@@ -215,4 +237,4 @@ const AddProduct = () => {
   );
 };
 
-export default AddProduct;
+export default ClothesProduct;

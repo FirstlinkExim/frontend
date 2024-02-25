@@ -14,6 +14,14 @@ import { Popover, Transition } from "@headlessui/react";
 import Image from "next/image";
 import Button from "../buttons/Button";
 import useProfile from "@/hooks/queries/useProfile";
+import { useAppDispatch, useAppSelector } from "@/redux/hooks";
+import {
+  ICartItem,
+  ProductState,
+  removeFromCart,
+} from "@/redux/slices/productSlice";
+import formatPrice from "@/utils/formatPrice";
+import { calculateCartTotals } from "@/utils/calculateTotal";
 
 const links = [
   {
@@ -69,7 +77,7 @@ const Navbar = () => {
   const [openCart, setOpenCart] = useState(true);
   const [search, setSearch] = useState("");
   const { customer } = useProfile();
-
+  const { wishlists } = useAppSelector(ProductState);
   const handleSerachChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearch(e.target.value);
   };
@@ -100,12 +108,18 @@ const Navbar = () => {
          
           group flex  items-center rounded-md relative gap-2  text-base font-medium  focus:outline-none focus-visible:ring-2 focus-visible:ring-white/75`}
             >
-              <FaRegHeart size={26} className="text-primary" />
+              <FaRegHeart
+                onClick={() => router.push("/wishlist")}
+                size={26}
+                className="text-primary cursor-pointer"
+              />
               <div className="flex flex-col items-start">
                 <h5 className="text-sm font-semibold hover:text-primary transition whitespace-nowrap">
                   My Wishlist
                 </h5>
-                <p className="text-xs text-gray-600">0 item(s)</p>
+                <p className="text-xs text-gray-600">
+                  {wishlists.length} item(s)
+                </p>
               </div>
               {/* <span className="w-4 h-4 rounded-full bg-primary text-white text-[10px] flex items-center justify-center absolute -top-1 -right-2">
               4
@@ -115,7 +129,10 @@ const Navbar = () => {
             <Cart />
 
             {customer ? (
-              <div onClick={() => router.push("/profile")} className="hidden md:flex items-center gap-2">
+              <div
+                onClick={() => router.push("/profile")}
+                className="hidden md:flex items-center gap-2"
+              >
                 <div className="w-10 h-10">
                   <Image
                     src={
@@ -131,7 +148,7 @@ const Navbar = () => {
                 </div>
               </div>
             ) : (
-              <div  className="flex items-center gap-2">
+              <div className="flex items-center gap-2">
                 <FaRegCircleUser size={28} className="text-primary" />
                 <div className="flex flex-col items-start">
                   <Link
@@ -229,7 +246,10 @@ export default Navbar;
 
 const Cart = () => {
   const router = useRouter();
-  const cart = [0, 1];
+  const dispatch = useAppDispatch();
+  const { cart } = useAppSelector(ProductState);
+
+  const { total, subtotal } = calculateCartTotals(cart);
   return (
     <Popover className="relative w-full">
       {({ open }) => (
@@ -244,7 +264,9 @@ const Cart = () => {
               <h5 className="text-sm font-semibold hover:text-primary transition">
                 My Cart
               </h5>
-              <p className="text-xs text-gray-600">0 item(s) - ₹0.00</p>
+              <p className="text-xs text-gray-600">
+                {cart.length} item(s) - {total}
+              </p>
             </div>
             {/* <span className="w-4 h-4 rounded-full bg-primary text-white text-[10px] flex items-center justify-center absolute -top-1 -right-2">
               4
@@ -264,223 +286,54 @@ const Cart = () => {
                 {cart && cart.length > 0 ? (
                   <>
                     <div className="p-4 max-h-[300px] h-full overflow-y-auto flex flex-col gap-4                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              ">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <Link href={`/product/${"1"}`}>
-                            <Image
-                              src={
-                                "https://demos.codezeel.com/prestashop/PRS21/PRS210502/70-home_default/mug-today-is-a-good-day.jpg"
+                      {cart.map((item: ICartItem) => (
+                        <div
+                          key={item.product._id}
+                          className="flex items-center justify-between"
+                        >
+                          <div className="flex items-center gap-2">
+                            <Link href={`/product/${item.product._id}`}>
+                              <Image
+                                src={item.product.images[0].url}
+                                alt={item.product.title}
+                                width={70}
+                                height={70}
+                                className="border  rounded-md"
+                              />
+                            </Link>
+
+                            <h4 className="text-sm w-40 line-clamp-4">
+                              {item.product.title}
+                            </h4>
+                          </div>
+
+                          <div className="flex items-center gap-2 ">
+                            <p>x{item.quantity}</p>
+                            <h5 className="text-primary font-medium">
+                              {formatPrice(
+                                item.product.price,
+                                item.product.currency
+                              )}
+                            </h5>
+                            <IoMdCloseCircleOutline
+                              onClick={() =>
+                                dispatch(removeFromCart(item.product))
                               }
-                              alt="product-image"
-                              width={70}
-                              height={70}
-                              className="border  rounded-md"
+                              className="text-primary cursor-pointer"
                             />
-                          </Link>
-
-                          <h4 className="text-sm w-40">
-                            Multicolored Open-Knit Crewneck
-                          </h4>
+                          </div>
                         </div>
-
-                        <div className="flex items-center gap-2 ">
-                          <p>x7</p>
-                          <h5 className="text-primary font-medium">₹48.00</h5>
-                          <IoMdCloseCircleOutline className="text-primary cursor-pointer" />
-                        </div>
-                      </div>
-
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <Link href={`/product/${"1"}`}>
-                            <Image
-                              src={
-                                "https://demos.codezeel.com/prestashop/PRS21/PRS210502/70-home_default/mug-today-is-a-good-day.jpg"
-                              }
-                              alt="product-image"
-                              width={70}
-                              height={70}
-                              className="border  rounded-md"
-                            />
-                          </Link>
-
-                          <h4 className="text-sm w-40">
-                            Multicolored Open-Knit Crewneck
-                          </h4>
-                        </div>
-
-                        <div className="flex items-center gap-2 ">
-                          <p>x7</p>
-                          <h5 className="text-primary font-medium">₹48.00</h5>
-                          <IoMdCloseCircleOutline className="text-primary cursor-pointer" />
-                        </div>
-                      </div>
-
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <Link href={`/product/${"1"}`}>
-                            <Image
-                              src={
-                                "https://demos.codezeel.com/prestashop/PRS21/PRS210502/70-home_default/mug-today-is-a-good-day.jpg"
-                              }
-                              alt="product-image"
-                              width={70}
-                              height={70}
-                              className="border  rounded-md"
-                            />
-                          </Link>
-
-                          <h4 className="text-sm w-40">
-                            Multicolored Open-Knit Crewneck
-                          </h4>
-                        </div>
-
-                        <div className="flex items-center gap-2 ">
-                          <p>x7</p>
-                          <h5 className="text-primary font-medium">₹48.00</h5>
-                          <IoMdCloseCircleOutline className="text-primary cursor-pointer" />
-                        </div>
-                      </div>
-
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <Link href={`/product/${"1"}`}>
-                            <Image
-                              src={
-                                "https://demos.codezeel.com/prestashop/PRS21/PRS210502/70-home_default/mug-today-is-a-good-day.jpg"
-                              }
-                              alt="product-image"
-                              width={70}
-                              height={70}
-                              className="border  rounded-md"
-                            />
-                          </Link>
-
-                          <h4 className="text-sm w-40">
-                            Multicolored Open-Knit Crewneck
-                          </h4>
-                        </div>
-
-                        <div className="flex items-center gap-2 ">
-                          <p>x7</p>
-                          <h5 className="text-primary font-medium">₹48.00</h5>
-                          <IoMdCloseCircleOutline className="text-primary cursor-pointer" />
-                        </div>
-                      </div>
-
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <Link href={`/product/${"1"}`}>
-                            <Image
-                              src={
-                                "https://demos.codezeel.com/prestashop/PRS21/PRS210502/70-home_default/mug-today-is-a-good-day.jpg"
-                              }
-                              alt="product-image"
-                              width={70}
-                              height={70}
-                              className="border  rounded-md"
-                            />
-                          </Link>
-
-                          <h4 className="text-sm w-40">
-                            Multicolored Open-Knit Crewneck
-                          </h4>
-                        </div>
-
-                        <div className="flex items-center gap-2 ">
-                          <p>x7</p>
-                          <h5 className="text-primary font-medium">₹48.00</h5>
-                          <IoMdCloseCircleOutline className="text-primary cursor-pointer" />
-                        </div>
-                      </div>
-
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <Link href={`/product/${"1"}`}>
-                            <Image
-                              src={
-                                "https://demos.codezeel.com/prestashop/PRS21/PRS210502/70-home_default/mug-today-is-a-good-day.jpg"
-                              }
-                              alt="product-image"
-                              width={70}
-                              height={70}
-                              className="border  rounded-md"
-                            />
-                          </Link>
-
-                          <h4 className="text-sm w-40">
-                            Multicolored Open-Knit Crewneck
-                          </h4>
-                        </div>
-
-                        <div className="flex items-center gap-2 ">
-                          <p>x7</p>
-                          <h5 className="text-primary font-medium">₹48.00</h5>
-                          <IoMdCloseCircleOutline className="text-primary cursor-pointer" />
-                        </div>
-                      </div>
-
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <Link href={`/product/${"1"}`}>
-                            <Image
-                              src={
-                                "https://demos.codezeel.com/prestashop/PRS21/PRS210502/70-home_default/mug-today-is-a-good-day.jpg"
-                              }
-                              alt="product-image"
-                              width={70}
-                              height={70}
-                              className="border  rounded-md"
-                            />
-                          </Link>
-
-                          <h4 className="text-sm w-40">
-                            Multicolored Open-Knit Crewneck
-                          </h4>
-                        </div>
-
-                        <div className="flex items-center gap-2 ">
-                          <p>x7</p>
-                          <h5 className="text-primary font-medium">₹48.00</h5>
-                          <IoMdCloseCircleOutline className="text-primary cursor-pointer" />
-                        </div>
-                      </div>
-
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <Link href={`/product/${"1"}`}>
-                            <Image
-                              src={
-                                "https://demos.codezeel.com/prestashop/PRS21/PRS210502/70-home_default/mug-today-is-a-good-day.jpg"
-                              }
-                              alt="product-image"
-                              width={70}
-                              height={70}
-                              className="border  rounded-md"
-                            />
-                          </Link>
-
-                          <h4 className="text-sm w-40">
-                            Multicolored Open-Knit Crewneck
-                          </h4>
-                        </div>
-
-                        <div className="flex items-center gap-2 ">
-                          <p>x7</p>
-                          <h5 className="text-primary font-medium">₹48.00</h5>
-                          <IoMdCloseCircleOutline className="text-primary cursor-pointer" />
-                        </div>
-                      </div>
+                      ))}
                     </div>
 
                     <div className="p-4 border-t border-gray-300">
                       <div className="flex items-center justify-between">
                         <span className="font-medium">Sub Total</span>
-                        <h5 className="text-primary font-medium">₹48.00</h5>
+                        <h5 className="text-primary font-medium">{subtotal}</h5>
                       </div>
                       <div className="flex items-center justify-between my-2">
                         <span className="font-medium">Total</span>
-                        <h5 className="text-primary font-medium">₹48.00</h5>
+                        <h5 className="text-primary font-medium">{total}</h5>
                       </div>
 
                       <div className="flex mt-4 items-center gap-4">

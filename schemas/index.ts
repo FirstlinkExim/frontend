@@ -26,7 +26,7 @@ export const ResetPasswordSchema = z
           "Password must be at least eight characters, at least one letter, one number and one special character",
       })
       .trim(),
-      acceptTerms: z.boolean(),
+    acceptTerms: z.boolean(),
   })
   .refine((data) => data.password === data.confirmPassword, {
     path: ["confirmPassword"],
@@ -36,6 +36,25 @@ export const ResetPasswordSchema = z
 export const OtpSchema = z.object({
   otp: z.string().min(1, { message: "Otp is required" }).trim(),
 });
+
+export const ChangePasswordSchema = z
+  .object({
+    password: z
+      .string()
+      .min(8, { message: "Password must be at least 8 characters" }),
+    confirmPassword: z
+      .string()
+      .min(8, { message: "Password must be at least 8 characters" })
+      .regex(passwordRegex, {
+        message:
+          "Password must be at least eight characters, at least one letter, one number and one special character",
+      })
+      .trim(),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    path: ["confirmPassword"],
+    message: "Passwords does not match",
+  });
 
 export const RegisterSchema = z
   .object({
@@ -59,6 +78,25 @@ export const RegisterSchema = z
     message: "Passwords does not match",
   });
 
+export const EditProfileSchema = z.object({
+  name: z.string().trim(),
+  email: z.string().email().trim(),
+  phone: z.string().trim(),
+  bio: z.string().trim(),
+  username: z.string().trim(),
+});
+
+export const AddressSchema = z.object({
+  address: z
+    .string()
+    .min(1, { message: "Please enter a valid address" })
+    .trim(),
+  state: z.string().min(1, { message: "State is required" }).trim(),
+  city: z.string().min(1, { message: "City is required" }).trim(),
+  country: z.string().min(1, { message: "Country is required" }).trim(),
+  zipCode: z.string().min(1, { message: "State is required" }).trim(),
+});
+
 export const AddProductSchema = z.object({
   title: z
     .string({
@@ -76,11 +114,17 @@ export const AddProductSchema = z.object({
     .min(1, { message: "Product description is required" })
     .trim(),
   price: z.string().min(1, { message: "Product price is required" }).trim(),
-  // currency: z.string(),
+  currency: z.string(),
   discountPrice: z.string().trim(),
   descountType: z.string().trim(),
   stock: z.string().min(1, { message: "Product stock is required" }).trim(),
-  color: z.string().trim()
+  shippingPrice: z.string().trim(),
+  sku: z.string().trim(),
+  barcode: z.string().trim(),
+});
+
+export const AddProductColorSchema = z.object({
+  color: z.string().trim(),
 });
 
 export const ShippingInformationSchema = z.object({
