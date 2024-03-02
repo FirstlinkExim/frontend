@@ -6,6 +6,7 @@ import { lookInInLocalStorage } from "@/config/localstorage";
 interface AuthState {
   isAuth: boolean;
   token: string | null;
+
 }
 
 const initialState: AuthState = {

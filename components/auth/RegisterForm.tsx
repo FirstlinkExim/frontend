@@ -43,15 +43,14 @@ const RegisterForm = () => {
   const onSubmit = async (values: Schema) => {
     setIsLoading(true);
     setError("");
-    toast.loading("Loading...")
+    setSuccess("")
     try {
       const {data} = await axiosInstance.post("/customers/register", {
         ...values,
         device: browserName,
       });
       
-      router.push(`/verification?email=${values.email}`);
-      toast.success(data.message)
+      setSuccess(data.message)
     } catch (error) {
       let message;
 
@@ -63,19 +62,17 @@ const RegisterForm = () => {
       setError(message);
     } finally {
       setIsLoading(false);
-      toast.dismiss()
     }
   };
 
   const sendVerificationEmail = async () => {
     const email = getValues("email")
-     const data =  await sendVerification(email)
-     if(data) {
-      router.push(`/verification?email=${email}`);
-      console.log(data);
-      
-     }
-     
+    const data =  await sendVerification(email)  
+    if(data) {
+      setError("")
+      setSuccess(data.message)
+    }
+    
   }
 
   return (
@@ -156,7 +153,7 @@ const RegisterForm = () => {
       <p className="text-center text-sm text-gray-600">
         Already a member?{" "}
         <Link
-          href={"/login"}
+          href={"/auth/login"}
           className="text-primary font-medium hover:underline"
         >
           Log in here.

@@ -1,14 +1,16 @@
 "use client";
 
 import Product from "@/components/products/Product";
+import useWishlist from "@/hooks/queries/useWishlist";
 import { useAppSelector } from "@/redux/hooks";
 import { ProductState } from "@/redux/slices/productSlice";
 import { IProduct } from "@/types";
 import React from "react";
 
 const MyWishlist = () => {
-  const { wishlists } = useAppSelector(ProductState);
-  const isLoading = false;
+  // const { wishlists } = useAppSelector(ProductState);
+  const {isLoading , wishlists} = useWishlist()
+
 
   return (
     <>

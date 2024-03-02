@@ -2,163 +2,324 @@ import React, { useCallback, useState } from "react";
 import "react-phone-number-input/style.css";
 import PhoneInput from "react-phone-number-input";
 import { Control, Controller } from "react-hook-form";
+import useAddresses from "@/hooks/queries/useAddresses";
+import { Address } from "@/types";
+import { FormControlLabel, FormGroup, Switch } from "@mui/material";
+import { FaRegEdit } from "react-icons/fa";
+import { HiOutlineTrash } from "react-icons/hi2";
+import useAddress from "@/hooks/mutations/useAddress";
+import Button from "@/components/buttons/Button";
+import useGeolocation from "@/hooks/useGeoLocation";
 
 interface FormData {
-  firstName: string;
-  lastName: string;
+  name: string;
   email: string;
   address: string;
   city: string;
   state: string;
-  zipCode: string;
+  zipcode: string;
   country: string;
   phone: string;
 }
 
-const StepOne = ({ control }: { control: Control<FormData> }) => {
-  const [phone, setPhone] = useState("");
-  const handlePhoneChange = useCallback(
-    (val: string) => {
-      console.log(typeof val);
-      setPhone(val); // Update the phone state
-    },
-    [setPhone]
-  );
-  return (
-    <form className="flex flex-col gap-4">
-      <div className="grid sm:grid-cols-2 grid-cols-1 gap-4">
-        <Controller
-          control={control}
-          name="firstName"
-          render={({ field, formState: { errors } }) => (
-            <input
-              type="text"
-              {...field}
-              placeholder="First name*"
-              className={`w-full py-3 px-2 border rounded-md text-sm outline-none ${
-                errors.firstName?.message ? "border-red-600" : "border-gray-300"
-              }`}
-            />
-          )}
-        />
-        <Controller
-          control={control}
-          name="lastName"
-          render={({ field, formState: { errors } }) => (
-            <input
-              type="text"
-              {...field}
-              placeholder="Last name*"
-              className={`w-full py-3 px-2 border rounded-md text-sm outline-none ${
-                errors.lastName?.message ? "border-red-600" : "border-gray-300"
-              }`}
-            />
-          )}
-        />
-      </div>
-      <Controller
-        control={control}
-        name="email"
-        render={({ field, formState: { errors } }) => (
-          <input
-            type="email"
-            {...field}
-            placeholder="Email*"
-            className={`w-full py-3 px-2 border rounded-md text-sm outline-none ${
-              errors.email?.message ? "border-red-600" : "border-gray-300"
-            }`}
-          />
-        )}
-      />
-      <Controller
-        control={control}
-        name="address"
-        render={({ field, formState: { errors } }) => (
-          <input
-            type="text"
-            {...field}
-            placeholder="Street Address*"
-            className={`w-full py-3 px-2 border rounded-md text-sm outline-none ${
-              errors.address?.message ? "border-red-600" : "border-gray-300"
-            }`}
-          />
-        )}
-      />
-      <div className="grid sm:grid-cols-2 grid-cols-1 gap-4">
-        <Controller
-          control={control}
-          name="city"
-          render={({ field, formState: { errors } }) => (
-            <input
-              type="text"
-              {...field}
-              placeholder="City*"
-              className={`w-full py-3 px-2 border rounded-md text-sm outline-none ${
-                errors.city?.message ? "border-red-600" : "border-gray-300"
-              }`}
-            />
-          )}
-        />
-        <Controller
-          control={control}
-          name="state"
-          render={({ field, formState: { errors } }) => (
-            <input
-              type="text"
-              {...field}
-              placeholder="State*"
-              className={`w-full py-3 px-2 border rounded-md text-sm outline-none ${
-                errors.state?.message ? "border-red-600" : "border-gray-300"
-              }`}
-            />
-          )}
-        />
-        <Controller
-          control={control}
-          name="zipCode"
-          render={({ field, formState: { errors } }) => (
-            <input
-              type="text"
-              {...field}
-              placeholder="Zip Code*"
-              className={`w-full py-3 px-2 border rounded-md text-sm outline-none ${
-                errors.zipCode?.message ? "border-red-600" : "border-gray-300"
-              }`}
-            />
-          )}
-        />
-        <Controller
-          control={control}
-          name="country"
-          render={({ field, formState: { errors } }) => (
-            <input
-              type="text"
-              {...field}
-              placeholder="Country*"
-              className={`w-full py-3 px-2 border rounded-md text-sm outline-none ${
-                errors.country?.message ? "border-red-600" : "border-gray-300"
-              }`}
-            />
-          )}
-        />
-      </div>
+const StepOne = ({
+  control,
+  setValue,
+  getValues
+}: {
+  control: Control<FormData>;
+  setValue: any;
+  getValues: any
+}) => {
+  const coordinates = useGeolocation();
+  const { addresses } = useAddresses();
+  const [existingAddress, setExistingAddress] = useState(false);
+  const { updateAddressMutation, deleteAddressMutation, toggleActiveMutation } = useAddress();
+  const [editAddressId, setEditAddressId] = useState<string | null>(null);
+  const [chooseAddress, setChooseAddress] = useState<string | null>(null);
 
-      <Controller
-        control={control}
-        name="phone"
-        render={({ field, formState: { errors } }) => (
-          <PhoneInput
-            defaultCountry="IN"
-            placeholder="Phone*"
-            {...field}
-            className={`w-full py-3 px-2 border rounded-md text-sm outline-none ${
-              errors.phone?.message ? "border-red-600" : "border-gray-300"
-            }`}
+  const toggleExistingAddress = (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    setExistingAddress(event.target.checked);
+  };
+
+  const handleEditAddress = (address: Address) => {
+    setEditAddressId(address._id);
+    setValue("address", address.address);
+    setValue("city", address.city);
+    setValue("state", address.state);
+    setValue("country", address.country);
+    setValue("zipcode", address.zipcode);
+  };
+
+  const handleDeleteAddress = async (addressId: string) => {
+    await deleteAddressMutation(addressId);
+  };
+
+  const handleToggleActive = useCallback(async (address: Address) => {
+    await toggleActiveMutation(address._id);
+    setChooseAddress(address._id)
+    setValue("address", address.address);
+    setValue("city", address.city);
+    setValue("state", address.state);
+    setValue("country", address.country);
+    setValue("zipcode", address.zipcode);
+  }, [toggleActiveMutation, setValue]);
+
+  const savedEditAddress = async () => {
+    const address = getValues("address");
+    const city = getValues("city");
+    const state = getValues("state");
+    const country = getValues("country");
+    const zipcode = getValues("zipcode");
+    if(editAddressId) {
+      const responseData = {
+        address,
+        city,
+        state,
+        country,
+        zipcode,
+        lat: coordinates.latitude,
+        lng: coordinates.longitude
+      };
+      await updateAddressMutation({
+        ...responseData,
+        addressId: editAddressId,
+      });
+    }
+  }
+
+  
+
+  return (
+    <div>
+      <form className="flex flex-col gap-4">
+        <div className="grid sm:grid-cols-2 grid-cols-1 gap-4">
+          <Controller
+            defaultValue=""
+            control={control}
+            name="name"
+            render={({ field, formState: { errors } }) => (
+              <input
+                type="text"
+                {...field}
+                placeholder="First name*"
+                className={`w-full py-3 px-2 border rounded-md text-sm outline-none ${
+                  errors.name?.message ? "border-red-600" : "border-gray-300"
+                }`}
+              />
+            )}
           />
-        )}
-      />
-    </form>
+          <Controller
+            defaultValue=""
+            control={control}
+            name="email"
+            render={({ field, formState: { errors } }) => (
+              <input
+                type="email"
+                {...field}
+                placeholder="Email*"
+                className={`w-full py-3 px-2 border rounded-md text-sm outline-none ${
+                  errors.email?.message ? "border-red-600" : "border-gray-300"
+                }`}
+              />
+            )}
+          />
+        </div>
+        <Controller
+          control={control}
+          defaultValue=""
+          name="phone"
+          render={({ field, formState: { errors } }) => (
+            <PhoneInput
+              defaultCountry="IN"
+              placeholder="Phone*"
+              {...field}
+              className={`w-full py-3 px-2 border rounded-md text-sm outline-none ${
+                errors.phone?.message ? "border-red-600" : "border-gray-300"
+              }`}
+            />
+          )}
+        />
+        <div className="w-full flex flex-col gap-4">
+          <Controller
+            defaultValue=""
+            control={control}
+            name="address"
+            render={({ field, formState: { errors } }) => (
+              <input
+                type="text"
+                {...field}
+                placeholder="Street Address*"
+                className={`w-full py-3 px-2 border rounded-md text-sm outline-none ${
+                  errors.address?.message ? "border-red-600" : "border-gray-300"
+                }`}
+              />
+            )}
+          />
+          <div className="grid sm:grid-cols-2 grid-cols-1 gap-4">
+            <Controller
+              defaultValue=""
+              control={control}
+              name="city"
+              render={({ field, formState: { errors } }) => (
+                <input
+                  type="text"
+                  {...field}
+                  placeholder="City*"
+                  className={`w-full py-3 px-2 border rounded-md text-sm outline-none ${
+                    errors.city?.message ? "border-red-600" : "border-gray-300"
+                  }`}
+                />
+              )}
+            />
+            <Controller
+              control={control}
+              defaultValue=""
+              name="state"
+              render={({ field, formState: { errors } }) => (
+                <input
+                  type="text"
+                  {...field}
+                  placeholder="State*"
+                  className={`w-full py-3 px-2 border rounded-md text-sm outline-none ${
+                    errors.state?.message ? "border-red-600" : "border-gray-300"
+                  }`}
+                />
+              )}
+            />
+            <Controller
+              defaultValue=""
+              control={control}
+              name="zipcode"
+              render={({ field, formState: { errors } }) => (
+                <input
+                  type="text"
+                  {...field}
+                  placeholder="Zip Code*"
+                  className={`w-full py-3 px-2 border rounded-md text-sm outline-none ${
+                    errors.zipcode?.message
+                      ? "border-red-600"
+                      : "border-gray-300"
+                  }`}
+                />
+              )}
+            />
+            <Controller
+              control={control}
+              name="country"
+              defaultValue=""
+              render={({ field, formState: { errors } }) => (
+                <input
+                  type="text"
+                  {...field}
+                  placeholder="Country*"
+                  className={`w-full py-3 px-2 border rounded-md text-sm outline-none ${
+                    errors.country?.message
+                      ? "border-red-600"
+                      : "border-gray-300"
+                  }`}
+                />
+              )}
+            />
+          </div>
+          {
+            editAddressId && <div className="w-[120px]">
+            <Button label="Save Address" onClick={savedEditAddress} />
+            </div>
+          }
+        </div>
+        <FormGroup>
+          <FormControlLabel
+            control={
+              <Switch
+                checked={existingAddress}
+                onChange={toggleExistingAddress}
+              />
+            }
+            label="Use Existing Address"
+          />
+        </FormGroup>
+        {
+          existingAddress && <div className="w-full flex flex-col gap-4">
+          {addresses &&
+            addresses?.length > 0 &&
+            addresses?.map((address: Address) => (
+              <Addresses
+                key={address._id}
+                address={address}
+                handleEditAddress={handleEditAddress}
+                handleDeleteAddress={handleDeleteAddress}
+                handleToggleActive={handleToggleActive}
+                chooseAddress={chooseAddress || ""}
+              />
+            ))}
+        </div>
+        }
+      </form>
+    </div>
   );
 };
 
 export default StepOne;
+
+const Addresses = ({
+  address,
+  handleEditAddress,
+  handleDeleteAddress,
+  handleToggleActive,
+  chooseAddress
+}: {
+  address: Address;
+  handleEditAddress: (address: Address) => void;
+  handleToggleActive: (address: Address) => void;
+  handleDeleteAddress: (id: string) => void;
+  chooseAddress: string
+}) => {
+
+ 
+  
+  return (
+    <div className="border rounded-md p-4 flex gap-4 items-start relative">
+      <div
+        className={`${
+          address._id.toString() === chooseAddress &&
+          "w-5 h-5 rounded-full border border-primary p-[2px] flex items-center justify-center mt-[2px]"
+        }`}
+      >
+        <div
+          onClick={() => handleToggleActive(address)}
+          className={` rounded-full ${
+            address._id.toString() === chooseAddress
+              ? "bg-primary w-3 h-3"
+              : "bg-gray-300 w-4 h-4 border"
+          }`}
+        ></div>
+      </div>
+
+      <div className="flex-1">
+        <p>{address?.address}</p>
+
+        <div className="flex items-center gap-2">
+          <p className="text-xs text-gray-600">{address.city}</p>
+          <div className="w-[6px] h-[6px] rounded-full bg-gray-300"></div>
+          <p className="text-xs text-gray-600">{address.state}</p>
+          <div className="w-[6px] h-[6px] rounded-full bg-gray-300"></div>
+          <p className="text-xs text-gray-600">{address.country}</p>
+          <div className="w-[6px] h-[6px] rounded-full bg-gray-300"></div>
+          <p className="text-xs text-gray-600">{address.zipcode}</p>
+        </div>
+      </div>
+
+      <div className="absolute top-4 right-4 flex items-center gap-2">
+        <button onClick={() => handleEditAddress(address)} type="button">
+          <FaRegEdit size={18} className="text-blue-600 cursor-pointer" />
+        </button>
+        <button type="button" onClick={() => handleDeleteAddress(address._id)}>
+          <HiOutlineTrash size={18} className="text-primary cursor-pointer" />
+        </button>
+      </div>
+    </div>
+  );
+};

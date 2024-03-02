@@ -6,6 +6,7 @@ import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
 import ReduxProvider from "@/providers/ReduxProvider";
 import ToasterProvider from "@/providers/ToasterProvider";
+import StripeProvider from "@/providers/StripeProvider";
 
 const popins = Poppins({
   subsets: ["latin"],
@@ -23,13 +24,15 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  console.log("env: ", process.env.NEXT_APP_API_URL);
   
+
   return (
     <html lang="en">
       <body className={popins.variable}>
         <QueryProvider>
-          <ReduxProvider>{children}</ReduxProvider>
+          <ReduxProvider>
+            <StripeProvider>{children}</StripeProvider>
+          </ReduxProvider>
         </QueryProvider>
         <ToasterProvider />
       </body>

@@ -8,23 +8,49 @@ import Button from "@/components/buttons/Button";
 import { LuKeyRound } from "react-icons/lu";
 import { FaCheckCircle } from "react-icons/fa";
 import { IoIosCloseCircle } from "react-icons/io";
+import useAxiosPrivate from "@/hooks/useAxiosPrivate";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "react-toastify";
 
 type Schema = z.infer<typeof ChangePasswordSchema>;
 const ChangePassword = () => {
+  const axiosPrivate = useAxiosPrivate();
+  const queryClient = useQueryClient();
   const {
     register,
     formState: { errors, dirtyFields, touchedFields },
     handleSubmit,
     watch,
-    reset
+    reset,
   } = useForm<Schema>({
     resolver: zodResolver(ChangePasswordSchema),
   });
 
-  const onSubmit = (data: Schema) => {
-    console.log(data);
-    reset()
+  const { mutateAsync: updatePasswordMutation, isPending } = useMutation({
+    mutationFn: async (data: any) => {
+      const response = await axiosPrivate.patch(
+        "/customers/profile/update-password",
+        data
+      );
+      return response.data;
+    },
 
+    onSuccess: () => {
+      toast.success("Password updated successfully");
+
+      queryClient.invalidateQueries({
+        queryKey: ["customers"],
+      });
+    },
+    onError: (err: any) => toast.error(err?.response?.data.message),
+  });
+
+  const onSubmit = async (data: Schema) => {
+    await updatePasswordMutation({
+      newPassword: data.password,
+      ...data,
+    });
+    reset();
   };
 
   const password = watch("password");
@@ -93,7 +119,12 @@ const ChangePassword = () => {
           </div>
 
           <div className="w-[150px]">
-            <Button label="Change Password" onClick={handleSubmit(onSubmit)} />
+            <Button
+              disabled={isPending}
+              loading={isPending}
+              label="Change Password"
+              onClick={handleSubmit(onSubmit)}
+            />
           </div>
         </form>
       </div>

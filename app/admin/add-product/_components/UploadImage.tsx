@@ -2,6 +2,8 @@
 
 import { axiosInstance } from "@/config/api";
 import { IImage } from "@/types";
+import { handleApiError } from "@/utils/handleApiError";
+import { AxiosError } from "axios";
 import Image from "next/image";
 import React, {
   forwardRef,
@@ -10,52 +12,50 @@ import React, {
   useState,
 } from "react";
 import { DropEvent, FileRejection, useDropzone } from "react-dropzone";
-import CircularProgressbar from "../../../../components/CircularProgressbar";
 import { toast } from "react-toastify";
 
 interface UploadImageProps {}
 
 export interface UploadImageRef {
-  image: IImage | undefined;
-  setImage: React.Dispatch<React.SetStateAction<IImage | undefined>>;
+  images: IImage[];
+  setImages: React.Dispatch<React.SetStateAction<IImage[]>>;
   handleValidate: () => void;
+  resetImages: () => void
 }
 const UploadImage: React.ForwardRefRenderFunction<
   UploadImageRef,
   UploadImageProps
 > = (props, ref) => {
-  const [image, setImage] = useState<IImage>();
+  const [images, setImages] = useState<IImage[]>([]);
   const [validate, setValidate] = useState(false);
-  const [uploadPercentage, setUploadPercentage] = useState<number | null>(null);
-
-  const uploadImages = async (file: File) => {
+  const uploadImages = async (files: File[]) => {
+    const loadingToast = toast.loading("Uploading...");
     try {
-      const formData = new FormData();
-      formData.append("file", file);
-
-      // files.forEach((file) => {
-      //   formData.append("files", file);
-      // });
-
-      const response = await axiosInstance.post(
+      const formdata = new FormData();
+      files.forEach((file) => formdata.append("file", file));
+      const { data } = await axiosInstance.post(
         "/products/upload-media",
-        formData,
+        formdata,
         {
           headers: {
             "Content-Type": "multipart/form-data",
           },
-          onUploadProgress: (progress) => {
-            const percentCompleted = progress.total
-              ? Math.round((progress.loaded / progress.total) * 100)
-              : 0;
-            setUploadPercentage(percentCompleted);
-          },
         }
       );
-      setImage(response.data);
-      setUploadPercentage(null);
+
+      setImages(data);
+      toast.success("Uploaded successfully");
     } catch (error) {
-      console.error("Error uploading images:", error);
+      let message;
+
+      if (error instanceof AxiosError) {
+        message = handleApiError(error);
+      } else {
+        message = "An unexpected error occurred.";
+      }
+      toast.error(message);
+    } finally {
+      toast.dismiss(loadingToast);
     }
   };
   const onDrop = useCallback(
@@ -64,29 +64,37 @@ const UploadImage: React.ForwardRefRenderFunction<
       fileRejections: FileRejection[],
       _event: DropEvent
     ) => {
-      if (fileRejections.length) {
-        toast.error("Too many file upload.", {
-          position: "top-center",
+      // Do something with the acceptedFiles
+
+      fileRejections.forEach(({ file, errors }) => {
+        errors.forEach((error) => {
+          console.error(`File ${file.name} was rejected: ${error.message}`);
+          // Here you can show an error message to the user
+          alert(`File ${file.name} was rejected: ${error.message}`);
         });
-        return;
-      }
-      await uploadImages(acceptedFiles[0]);
+      });
+      await uploadImages(acceptedFiles);
     },
     []
   );
 
-  const { getRootProps, getInputProps } = useDropzone({ onDrop, maxFiles: 1 });
+  const { getRootProps, getInputProps } = useDropzone({ onDrop });
 
   const handleValidate = useCallback(() => {
-    if (!image) {
+    if (images.length === 0) {
       setValidate(true);
     }
-  }, [image]);
+  }, [images.length]);
+
+  const resetImages = () => {
+    setImages([])
+  }
 
   useImperativeHandle(ref, () => ({
-    image,
-    setImage,
+    images,
+    setImages,
     handleValidate,
+    resetImages
   }));
 
   return (
@@ -99,41 +107,34 @@ const UploadImage: React.ForwardRefRenderFunction<
             e.stopPropagation();
           }}
           className={`flex flex-col items-center justify-center w-full h-64 border ${
-            validate && !image ? "border-red-400" : "border-gray-300"
+            validate && images.length === 0
+              ? "border-red-400"
+              : "border-gray-300"
           } border-dashed rounded-lg cursor-pointer bg-gray-50`}
         >
           <div className="flex flex-col items-center justify-center pt-5 pb-6">
-            {uploadPercentage !== null ? (
-              <>
-                <p className="opacity-70">Uploading...</p>
-                <CircularProgressbar value={uploadPercentage} />
-              </>
-            ) : (
-              <>
-                <svg
-                  className="w-8 h-8 mb-4 text-gray-500"
-                  aria-hidden="true"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 20 16"
-                >
-                  <path
-                    stroke="currentColor"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2"
-                  />
-                </svg>
-                <p className="mb-2 text-sm text-gray-500  text-center px-2">
-                  <span className="font-semibold">Click to upload</span> or drag
-                  and drop
-                </p>
-              </>
-            )}
+            <svg
+              className="w-8 h-8 mb-4 text-gray-500"
+              aria-hidden="true"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 20 16"
+            >
+              <path
+                stroke="currentColor"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2"
+              />
+            </svg>
+            <p className="mb-2 text-sm text-gray-500">
+              <span className="font-semibold">Click to upload</span> or drag and
+              drop
+            </p>
           </div>
           <input
-            // multiple
+            multiple
             name="image"
             {...getInputProps()}
             id="image"
@@ -144,7 +145,19 @@ const UploadImage: React.ForwardRefRenderFunction<
         </label>
       </div>
 
-     
+      <div className="flex items-center flex-wrap gap-2">
+        {images.length > 0 &&
+          images.map((image, index) => (
+            <Image
+              width={150}
+              height={150}
+              key={index}
+              src={image.url}
+              alt={`product-image-${image.id}`}
+              className="w-[120px] h-[130px] rounded-md object-cover shadow border"
+            />
+          ))}
+      </div>
     </div>
   );
 };

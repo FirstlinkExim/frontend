@@ -21,18 +21,23 @@ import { useRouter } from "next/navigation";
 import { storeInLocalStorage } from "@/config/localstorage";
 import { useAppDispatch } from "@/redux/hooks";
 import { setCredentials } from "@/redux/slices/customerSlice";
+import useSendVerification from "@/hooks/useSendVerification";
+import { AiOutlineWarning } from "react-icons/ai";
 
 type Schema = z.infer<typeof LoginSchema>;
 
 const LoginForm = () => {
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const browserName = useBrowserInfo();
   const router = useRouter();
-  const dispatch = useAppDispatch()
+  const dispatch = useAppDispatch();
+  const { sendVerification } = useSendVerification();
   const {
     register,
     handleSubmit,
     formState: { errors },
+    getValues,
   } = useForm<Schema>({
     resolver: zodResolver(LoginSchema),
   });
@@ -64,9 +69,34 @@ const LoginForm = () => {
     }
   };
 
+  const sendVerificationEmail = async () => {
+    const email = getValues("email");
+    const data = await sendVerification(email);
+    if (data) {
+      setError("");
+      setSuccess(data.message);
+    }
+  };
+
   return (
     <form className="bg-white border border-gray-300 rounded p-4 flex flex-col gap-4">
-      <FormError message={error} />
+      {error === "User not verified" ? (
+        <div className="p-3 bg-red-100 rounded text-sm text-red-600 flex gap-2">
+          <AiOutlineWarning size={20} />
+          <div className="flex flex-col items-start">
+            <span>Email is already registered but not verified</span>
+            <span
+              onClick={sendVerificationEmail}
+              className="underline cursor-pointer"
+            >
+              send verification mail
+            </span>
+          </div>
+        </div>
+      ) : (
+        <FormError message={error} />
+      )}
+      <FormSuccess message={success} />
 
       <Input
         type="email"
@@ -118,7 +148,7 @@ const LoginForm = () => {
       <p className="text-center text-sm text-gray-600">
         New to our site?
         <Link
-          href={"/register"}
+          href={"/auth/register"}
           className="text-primary font-medium hover:underline ml-1"
         >
           Sign up now.

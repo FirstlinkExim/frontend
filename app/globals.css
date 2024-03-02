@@ -34,5 +34,13 @@ body {
   outline: none;
 }
 
+.basic-multi-select {
+  outline: none;
+}
+
+.select:focus {
+  outline: none;
+}
+
 
 

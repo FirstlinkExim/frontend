@@ -94,7 +94,7 @@ export const AddressSchema = z.object({
   state: z.string().min(1, { message: "State is required" }).trim(),
   city: z.string().min(1, { message: "City is required" }).trim(),
   country: z.string().min(1, { message: "Country is required" }).trim(),
-  zipCode: z.string().min(1, { message: "State is required" }).trim(),
+  zipcode: z.string().min(1, { message: "Zip code is required" }).trim(),
 });
 
 export const AddProductSchema = z.object({
@@ -120,7 +120,18 @@ export const AddProductSchema = z.object({
   stock: z.string().min(1, { message: "Product stock is required" }).trim(),
   shippingPrice: z.string().trim(),
   sku: z.string().trim(),
+  quality: z.string().trim(),
+  colors: z.string().trim(),
   barcode: z.string().trim(),
+  type: z.string().min(1, { message: "Product type is required" }).trim(),
+  size: z
+    .array(
+      z.object({
+        label: z.string(),
+        value: z.string(),
+      })
+    )
+    .min(1, { message: "Size is required" }),
 });
 
 export const AddProductColorSchema = z.object({
@@ -128,12 +139,11 @@ export const AddProductColorSchema = z.object({
 });
 
 export const ShippingInformationSchema = z.object({
-  firstName: z.string().min(1, { message: "First name is required" }).trim(),
-  lastName: z.string().min(1, { message: "Last name is required" }).trim(),
+  name: z.string().min(1, { message: "Name is required" }).trim(),
   address: z.string().min(1, { message: "Address is required" }).trim(),
   city: z.string().min(1, { message: "City is required" }).trim(),
   state: z.string().min(1, { message: "State is required" }).trim(),
-  zipCode: z.string().min(1, { message: "Zip is required" }).trim(),
+  zipcode: z.string().min(1, { message: "Zip is required" }).trim(),
   country: z.string().min(1, { message: "Country is required" }).trim(),
   phone: z.string().min(1, { message: "Phone is required" }).trim(),
   email: z.string().min(1, { message: "Email is required" }).trim(),
@@ -146,13 +156,12 @@ export const PaymentCardInformationSchema = z.object({
     .trim(),
   cardNumber: z
     .string()
-    .min(1, { message: "Card holder name is required" })
+    .min(1, { message: "Card number required" })
     .max(12, { message: "Maximum length reached" })
     .trim(),
   expiry: z
     .string()
     .min(1, { message: "Expiry date is required" })
-    .max(12, { message: "Maximum length reached" })
     .trim(),
   cvv: z
     .string()
@@ -165,5 +174,16 @@ export const ContactFormSchema = z.object({
   name: z.string().min(1, { message: "Name is required" }).trim(),
   email: z.string().min(1, { message: "Email is required" }).trim(),
   message: z.string().min(1, { message: "Message is required" }).trim(),
-  phone: z.string().trim(),
+  phone: z
+    .string()
+    .trim()
+    .min(1, { message: "Phone is required" })
+    .max(15, { message: "Phone number cannot exceed 15 characters" })
+    .regex(/^\d+$/, { message: "Phone number must contain only numbers" })
+    .trim(),
 });
+
+export const ReviewSchema = z.object({
+  rating: z.number().min(1, { message: "Rating is required" }),
+  message: z.string().min(1, { message: "Review is required" }).trim(),
+})

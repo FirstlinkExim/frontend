@@ -43,7 +43,7 @@ const ContactUsPage = () => {
 
             <div className="flex items-center gap-4">
               <div className="flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 group">
-                <IoLocationOutline
+                <IoMailOutline
                   size={24}
                   className="group-hover:text-primary transition"
                 />

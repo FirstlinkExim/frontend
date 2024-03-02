@@ -37,8 +37,8 @@ const links = [
     name: "Products",
   },
   {
-    path: "/#services",
-    name: "Services",
+    path: "/new-arrivals",
+    name: "New Arrivals",
   },
   {
     path: "/contact-us",
@@ -56,7 +56,7 @@ const NavItems = () => {
           <Link
             href={link.path}
             key={link.path}
-            className={`text-sm relative font-medium cursor-pointer hover:text-orange-600 transition duration-300 ${
+            className={`text-sm relative font-medium cursor-pointer ${pathname !== link.path && "hover:text-orange-600"} transition duration-300 ${
               pathname === link.path
                 ? "text-orange-600 border-b-2 border-b-primary before:hover:scale-x-0"
                 : "text-gray-900"
@@ -152,7 +152,7 @@ const Navbar = () => {
                 <FaRegCircleUser size={28} className="text-primary" />
                 <div className="flex flex-col items-start">
                   <Link
-                    href="/login"
+                    href="/auth/login"
                     className="text-sm font-semibold hover:text-primary transition"
                   >
                     Login
@@ -160,7 +160,7 @@ const Navbar = () => {
                   <p className="text-x flex items-center text-xs gap-1 text-gray-600">
                     Or{" "}
                     <Link
-                      href="/register"
+                      href="/auth/register"
                       className="hover:text-primary transition"
                     >
                       Register
@@ -217,7 +217,7 @@ const Navbar = () => {
                 <div className="flex flex-col items-start">
                   <Link
                     onClick={() => setTimeout(() => setOpen(false), 200)}
-                    href="/login"
+                    href="/auth/login"
                     className="text-sm font-semibold hover:text-primary transition"
                   >
                     Login
@@ -226,7 +226,7 @@ const Navbar = () => {
                     Or{" "}
                     <Link
                       onClick={() => setTimeout(() => setOpen(false), 200)}
-                      href="/register"
+                      href="/auth/register"
                       className="hover:text-primary transition"
                     >
                       Register
@@ -248,6 +248,8 @@ const Cart = () => {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const { cart } = useAppSelector(ProductState);
+
+  
 
   const { total, subtotal } = calculateCartTotals(cart);
   return (
@@ -294,7 +296,7 @@ const Cart = () => {
                           <div className="flex items-center gap-2">
                             <Link href={`/product/${item.product._id}`}>
                               <Image
-                                src={item.product.images[0].url}
+                                src={item.product.image?.url || ""}
                                 alt={item.product.title}
                                 width={70}
                                 height={70}

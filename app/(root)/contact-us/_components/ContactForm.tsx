@@ -1,7 +1,7 @@
 "use client";
 
 import Input from "@/components/inputs/Input";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -10,25 +10,69 @@ import { FiUser } from "react-icons/fi";
 import { BsTelephone } from "react-icons/bs";
 import { MdOutlineAlternateEmail } from "react-icons/md";
 import Button from "@/components/buttons/Button";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { axiosInstance } from "@/config/api";
+import FormError from "@/components/auth/FormError";
+import FormSuccess from "@/components/auth/FormSuccess";
 
 type Schema = z.infer<typeof ContactFormSchema>;
 
 const ContactForm = () => {
+  const queryClient = useQueryClient();
+  const [success, setSuccess] = useState("");
   const {
     register,
     handleSubmit,
     formState: { errors },
+  setValue
   } = useForm<Schema>({
     resolver: zodResolver(ContactFormSchema),
   });
 
-  const onSubmit = (data: Schema) => {
-    console.log(data);
+  const {
+    mutateAsync: createContactMutation,
+    isError,
+    isSuccess,
+    error,
+    isPending,
+  } = useMutation({
+    mutationFn: async (data: Schema) => {
+      const response = await axiosInstance.post("/contacts", data);
+      return response.data;
+    },
+
+    onSuccess: (data) => {
+      setSuccess(data?.message);
+
+      queryClient.invalidateQueries({
+        queryKey: ["contacts"],
+      });
+    },
+  });
+
+  const onSubmit = async (data: Schema) => {
+    await createContactMutation(data);
+    setValue("name", "")
+    setValue("email", "")
+    setValue("phone", "")
+    setValue("message", "")
   };
+
+  useEffect(() => {
+    if (success) {
+      setTimeout(() => {
+        setSuccess("");
+      }, 5000);
+    }
+  }, [success]);
 
   return (
     <>
-      <form className="flex flex-col gap-4">
+      {isError && <FormError message={error?.message} />}
+      {isSuccess && <FormSuccess message={success} />}
+      <form
+        className={`flex flex-col gap-4 ${(isError || isSuccess) && "mt-4"}`}
+      >
         <div className="grid md:grid-cols-2 grid-cols-1 gap-4">
           <Input
             id="name"
@@ -53,7 +97,8 @@ const ContactForm = () => {
           register={register}
           placeholder="+1 888234765"
           icon={BsTelephone}
-          label="Phone(optional)"
+          label="Phone"
+          error={errors.phone?.message}
         />
 
         <div>
@@ -68,11 +113,18 @@ const ContactForm = () => {
             {...register("message")}
             className="w-full border border-gray-300 rounded p-2 outline-none text-sm text-gray-800"
           ></textarea>
-          {errors.message?.message && <p className="text-xs text-red-500 ">{errors.message.message}</p>}
+          {errors.message?.message && (
+            <p className="text-xs text-red-500 ">{errors.message.message}</p>
+          )}
         </div>
 
         <div className="w-[100px]">
-          <Button label="Submit" onClick={handleSubmit(onSubmit)} />
+          <Button
+            disabled={isPending}
+            loading={isPending}
+            label="Submit"
+            onClick={handleSubmit(onSubmit)}
+          />
         </div>
       </form>
     </>

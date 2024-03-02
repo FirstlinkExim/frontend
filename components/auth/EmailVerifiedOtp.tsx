@@ -37,7 +37,6 @@ const EmailVerifiedOtp = ({ email }: { email: string }) => {
   const onSubmit = async (values: Schema) => {
     setIsLoading(true);
     setError("");
-    console.log(browserName);
     toast.loading("Loading...");
 
     try {

@@ -2,7 +2,7 @@ import { useAppDispatch } from "@/redux/hooks";
 import { addToWishlist, removeFromWishlist } from "@/redux/slices/productSlice";
 import { IProduct } from "@/types";
 import React, { useCallback, useState } from "react";
-import useAxiosPrivate from "./useAxiosPrivate";
+import useAxiosPrivate from "../useAxiosPrivate";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-toastify";
 
@@ -19,17 +19,19 @@ const useLike = ({
   const queryClient = useQueryClient();
   const { mutateAsync: addWishlistMutation } = useMutation({
     mutationFn: async (data: any) => {
-      const response = await axiosPrivate.post("/products/wishlist", data);
+      const response = await axiosPrivate.post("/customers/wishlist", data);
+      return response.data
     },
     onError: (err: any) =>
       toast.error(err?.response?.data.message, { position: "top-center" }),
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: ["products"],
+        queryKey: ["customers", "products"],
       });
     },
   });
 
+  
   const handleProductWishlist = async () => {
     const updatedLike = !isLike;
     setIsLike(updatedLike);

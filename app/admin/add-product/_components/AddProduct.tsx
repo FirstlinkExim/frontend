@@ -1,38 +1,118 @@
 "use client";
 
-import React, { useRef, useState } from "react";
+import React, { useRef } from "react";
 import Select from "../../../../components/inputs/Select";
 import Input from "../../../../components/inputs/Input";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Controller, useForm } from "react-hook-form";
-import { AddProductColorSchema, AddProductSchema } from "@/schemas";
+import { AddProductSchema } from "@/schemas";
 import UploadImage, { UploadImageRef } from "./UploadImage";
 import TextArea from "../../../../components/inputs/TextArea";
-import useGeoLocation from "@/hooks/useGeoLocation";
-import symbols from "@/data/country-symbol.json";
 import Button from "../../../../components/buttons/Button";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-toastify";
 import useAxiosPrivate from "@/hooks/useAxiosPrivate";
-import Image from "next/image";
-import { IImage } from "@/types";
+import MultiSelect from "@/components/inputs/MultiSelect";
 type Schema = z.infer<typeof AddProductSchema>;
-type ColorSchema = z.infer<typeof AddProductColorSchema>;
 
-type Image = {
-  color: string;
-  url: string;
-};
+const clothSizes = [
+  {
+    label: "Small",
+    value: "Small",
+  },
+  {
+    label: "Medium",
+    value: "Medium",
+  },
+  {
+    label: "Large",
+    value: "Large",
+  },
+  {
+    label: "XL",
+    value: "XL",
+  },
+  {
+    label: "2XL",
+    value: "2XL",
+  },
+  {
+    label: "3XL",
+    value: "3XL",
+  },
+  {
+    label: "4XL",
+    value: "4XL",
+  },
+  {
+    label: "5XL",
+    value: "5XL",
+  },
+  {
+    label: "6XL",
+    value: "6XL",
+  },
+];
+
+const clothesCategory = ["Mens", "Womens", "Girls", "Boys", "Shoes"];
+const hairCategory = ["Human Hair", "Straight hair", "Curly hair"];
+const hairQuality = ["Premium Quality", "Matural Quality"];
+const hairSizes = [
+  {
+    label: "10",
+    value: "10",
+  },
+  {
+    label: "12",
+    value: "12",
+  },
+  {
+    label: "14",
+    value: "14",
+  },
+  {
+    label: "16",
+    value: "16",
+  },
+  {
+    label: "18",
+    value: "18",
+  },
+  {
+    label: "20",
+    value: "20",
+  },
+  {
+    label: "22",
+    value: "22",
+  },
+  {
+    label: "24",
+    value: "24",
+  },
+  {
+    label: "26",
+    value: "26",
+  },
+  {
+    label: "28",
+    value: "28",
+  },
+  {
+    label: "30",
+    value: "30",
+  },
+];
+
 const AddProduct = () => {
   const uploadImageRef = useRef<UploadImageRef>(null);
-  const [images, setImages] = useState<Image[]>([]);
-  const [size, setSize] = useState("");
   const axiosPrivate = useAxiosPrivate();
   const queryClient = useQueryClient();
   const { mutateAsync: addProductMutation } = useMutation({
     mutationFn: async (data: any) => {
       const response = await axiosPrivate.post("/products", data);
+      return response.data;
     },
     onError: (err: any) => toast.error(err?.response?.data.message),
     onSuccess: () => {
@@ -48,60 +128,42 @@ const AddProduct = () => {
     handleSubmit,
     control,
     formState: { errors },
-    reset
+    setValue,
+    reset,
+    watch,
   } = useForm<Schema>({
     resolver: zodResolver(AddProductSchema),
   });
 
-  const {
-    register: registerColor,
-    handleSubmit: handleSubmitColor,
-    formState: { errors: errorsColor },
-    setValue: setColorValue,
-  } = useForm<ColorSchema>({
-    resolver: zodResolver(AddProductColorSchema),
-  });
+  const type = watch("type");
 
   const onSubmit = async (values: Schema) => {
-    if (!images.length) {
-      toast.error("Please select a product image with color", {
-        position: "top-center",
-      });
-      return ;
-    }
-
-    const responseData = {
-      ...values,
-      size: size,
-      price: +values.price,
-      discountPrice: +values.discountPrice,
-      shippingPrice: +values.shippingPrice,
-      images,
-    };
-    await addProductMutation(responseData);
-    reset()
-    setImages([])
-  };
-
-  const onSubmitColorImage = (values: ColorSchema) => {
     if (uploadImageRef.current?.handleValidate()) {
       return true;
     }
-    setImages((prevImage) => {
-      const imageUrl = uploadImageRef.current?.image?.url;
-      if (!imageUrl) {
-        return prevImage;
-      }
-      return [
-        ...prevImage,
-        {
-          color: values.color,
-          url: imageUrl,
-        },
-      ];
-    });
-    setColorValue("color", "");
+    const images = uploadImageRef.current?.images;
 
+    const productSize = values.size.map((val) => val.value);
+    console.log(productSize);
+    
+    // const colors = values.colors
+    //   .split(",")
+    //   .map((val) => val.toLowerCase().trim());
+    // const responseData = {
+    //   ...values,
+    //   sizes: productSize,
+    //   price: +values.price,
+    //   colors: colors,
+    //   discountPrice: +values.discountPrice,
+    //   shippingPrice: +values.shippingPrice,
+    //   images,
+    //   stock: +values.stock
+    // };
+
+    // await addProductMutation(responseData);
+    // reset();
+    // setValue("size", []);
+    // uploadImageRef.current?.resetImages();
   };
 
   return (
@@ -131,42 +193,73 @@ const AddProduct = () => {
 
       <form className="w-full flex flex-col gap-8">
         <div className="grid sm:grid-cols-2 grid-cols-1  gap-6">
-          <div>
-            <div className="shadow bg-white rounded-md p-4 w-full h-[500px]">
-              <p className="text-lg font-semibold mb-3">Product Media</p>
+          <div className="flex flex-col gap-6">
+            <div>
+              <div className="shadow bg-white rounded-md p-4 w-full">
+                <p className="text-lg font-semibold mb-3">Product Media</p>
 
-              <UploadImage ref={uploadImageRef} />
-
-              <Input
-                register={registerColor}
-                id="color"
-                label="Product Color"
-                hasBg
-              />
-              <div className="mt-4 w-[120px]">
-                <Button
-                  label="Save"
-                  onClick={handleSubmitColor(onSubmitColorImage)}
-                />
+                <UploadImage ref={uploadImageRef} />
               </div>
             </div>
 
-            {images.length > 0 && (
-              <div className="flex items-center flex-wrap gap-2 shadow rounded-md bg-white p-4 mt-4">
-                {images.length > 0 &&
-                  images.map((image: any, index) => (
-                    <div key={index}>
-                      <Image
-                        width={150}
-                        height={150}
-                        src={image?.url}
-                        alt="product-image"
-                        className="w-[120px] h-[130px] rounded-md object-cover shadow border"
+            <div className="shadow bg-white rounded-md p-4 w-full sm:max-h-[380px]">
+              <p className="text-lg font-semibold">Specifications</p>
+
+              <div className="flex flex-col gap-4 mt-3">
+                <Input
+                  register={register}
+                  id="colors"
+                  label="Product Color"
+                  hasBg
+                />
+                {type === "Hair" ? (
+                  <Controller
+                    control={control}
+                    name="quality"
+                    defaultValue=""
+                    render={({
+                      field: { value, onChange },
+                      formState: { errors },
+                    }) => (
+                      <Select
+                        options={hairQuality}
+                        selected={value}
+                        onChange={onChange}
+                        label="Quality"
+                        hasBg
+                        error={errors.type?.message}
                       />
-                    </div>
-                  ))}
+                    )}
+                  />
+                ) : (
+                  <Input
+                    register={register}
+                    id="quality"
+                    label="Quality"
+                    hasBg
+                  />
+                )}
+
+                <Controller
+                  control={control}
+                  name="type"
+                  defaultValue=""
+                  render={({
+                    field: { value, onChange },
+                    formState: { errors },
+                  }) => (
+                    <Select
+                      options={["Clothes", "Hair"]}
+                      selected={value}
+                      onChange={onChange}
+                      label="Type"
+                      hasBg
+                      error={errors.type?.message}
+                    />
+                  )}
+                />
               </div>
-            )}
+            </div>
           </div>
 
           <div className="flex flex-col gap-6">
@@ -280,7 +373,7 @@ const AddProduct = () => {
                     formState: { errors },
                   }) => (
                     <Select
-                      options={["Mens", "Womens", "Girls", "Boys"]}
+                      options={type === "Hair" ? hairCategory : clothesCategory}
                       selected={value}
                       onChange={onChange}
                       label="Product Category"
@@ -290,36 +383,20 @@ const AddProduct = () => {
                   )}
                 />
 
-                <div>
-                  <p className="text-xs font-medium text-gray-900">
-                    Product Size
-                  </p>
-
-                  <div className="flex flex-wrap gap-3 mt-1">
-                    {[
-                      "XS",
-                      "S",
-                      "M",
-                      "L",
-                      "XL",
-                      "XXL",
-                      "3XL",
-                      "4XL",
-                      "5XL",
-                      "6XL",
-                    ].map((val, i) => (
-                      <div
-                        key={i}
-                        onClick={() => setSize(val)}
-                        className={`border rounded-md h-10 w-11 flex items-center justify-center text-xs cursor-pointer
-                      ${val === size && "bg-gray-200"}
-                      `}
-                      >
-                        {val}
-                      </div>
-                    ))}
-                  </div>
-                </div>
+                <Controller
+                  name="size"
+                  control={control}
+                  render={({ field: { value, onChange } }) => (
+                    <MultiSelect
+                      options={type === "Hair" ? hairSizes : clothSizes}
+                      label={type === "Hair" ? "Size (in inch)" : "Size"}
+                      value={value}
+                      onChange={onChange}
+                      error={errors.size?.message}
+                      hasBg
+                    />
+                  )}
+                />
               </div>
             </div>
 

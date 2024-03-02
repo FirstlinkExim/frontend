@@ -1,14 +1,49 @@
 import Button from "@/components/buttons/Button";
-import React, { useState } from "react";
+import React, { forwardRef, useImperativeHandle, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { PaymentCardInformationSchema } from "@/schemas";
-
+import { loadStripe } from "@stripe/stripe-js";
+import {
+  CardExpiryElement,
+  PaymentElement,
+  CardNumberElement,
+  CardCvcElement,
+  useStripe,
+  useElements,
+} from "@stripe/react-stripe-js";
+import { LuUser2 } from "react-icons/lu";
+import useOrder from "@/hooks/mutations/useOrder";
+import { AxiosError } from "axios";
+import { handleApiError } from "@/utils/handleApiError";
+import { toast } from "react-toastify";
+import { axiosInstance } from "@/config/api";
+import useProfile from "@/hooks/queries/useProfile";
+import { useAppSelector } from "@/redux/hooks";
+import { ProductState } from "@/redux/slices/productSlice";
+import {
+  calculateCartTotalPrice,
+  calculateCartTotals,
+} from "@/utils/calculateTotal";
+import { useRouter } from "next/navigation";
 type Schema = z.infer<typeof PaymentCardInformationSchema>;
 
-const StepThree = () => {
+export interface StepThreeRef {}
+
+interface StepThreeProps {
+  getValues: any;
+}
+
+const StepThree: React.ForwardRefRenderFunction<
+  StepThreeRef,
+  StepThreeProps
+> = ({ getValues }, ref) => {
   const [active, setActive] = useState(1);
+  const stripe = useStripe();
+  const elements = useElements();
+  const [cardHolder, setCardHolder] = useState("")
+const router = useRouter()
   const {
     register,
     handleSubmit,
@@ -17,7 +52,10 @@ const StepThree = () => {
   } = useForm<Schema>({
     resolver: zodResolver(PaymentCardInformationSchema),
   });
-
+  const { createOrderMutation } = useOrder();
+  const { cart } = useAppSelector(ProductState);
+  
+  const { total: totalAmount, currencyCode } = calculateCartTotalPrice(cart);
   const onChange = (e: React.ChangeEvent<HTMLInputElement>, val: number) => {
     setActive(active === val ? 0 : val);
   };
@@ -27,16 +65,175 @@ const StepThree = () => {
     return regex.test(value);
   };
 
+  
+
+  const paymentHandler = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    // if (!stripe || !elements) {
+    //   return;
+    // }
+
+    const orderData = {
+      cart,
+      totalPrice: totalAmount,
+      shippingAddress: {
+        city: getValues("city"),
+        state: getValues("state"),
+        country: getValues("country"),
+        zipcode: getValues("zipcode"),
+        address: getValues("address"),
+      },
+      paymentInfo: {
+        id:  "123456",
+        status: "success",
+        type: "Card",
+      },
+      customer: {
+        name: getValues("name"),
+        email: getValues("email"),
+        phone: getValues("phone"),
+      }
+
+    }
+    const data = await createOrderMutation(orderData)
+    router.push(`/order/success?orderId=${data._id}`)
+   
+    
+
+    // try {
+    //   const paymentData = {
+    //     amount: 10,
+    //     currency: currencyCode,
+    //   };
+    //   const { data} = await axiosInstance.post("/payment/process", paymentData)
+    //  console.log(data);
+     
+      
+    //   const client_secret = data.client_secret;
+    //   const cardElement = elements.getElement(CardNumberElement);
+    //   if (!cardElement) {
+    //     // Handle case where card element is not available
+    //     console.error("Card element is not available");
+    //     return;
+    //   }
+    //   const result = await stripe.confirmCardPayment(client_secret, {
+    //     payment_method: {
+    //       card: cardElement,
+    //       // billing_details: {
+    //       //   name: cardHolder // Get cardholder's name from form
+    //       // },
+    //     },
+    //   });
+
+    //   if (result.error) {
+    //     // Show error to your customer
+    //     console.error(result.error);
+    //     toast.error(result.error.message);
+    //   } else {
+    //     console.log(result);
+        
+    //     // Payment successful
+    //     if (result.paymentIntent.status === "succeeded") {
+    //       const orderData = {
+    //         cart,
+    //         totalPrice: totalAmount,
+    //         shippingAddress: {
+    //           city: getValues("city"),
+    //           state: getValues("state"),
+    //           country: getValues("country"),
+    //           zipcode: getValues("zipcode"),
+    //         },
+    //         paymentInfo: {
+    //           id:  "123456",
+    //           status: "success",
+    //           type: "Card",
+    //         },
+
+    //       }
+    //       const data = await createOrderMutation(orderData)
+    //       // Payment completed successfully
+    //       console.log("Payment succeeded:", result.paymentIntent);
+    //     }
+    //   }
+
+    //   // const { data} = await axiosInstance.post("/payment/process")
+    // } catch (error) {
+    //   let message;
+
+    //   if (error instanceof AxiosError) {
+    //     message = handleApiError(error);
+    //   } else {
+    //     message = "An unexpected error occurred.";
+    //   }
+
+    //   toast.error(message);
+    // }
+  };
+
+  useImperativeHandle(ref, () => ({}));
+
+  const paypalPaymentHandler  = async () => {
+    const orderData = {
+      cart,
+      totalPrice: totalAmount,
+      shippingAddress: {
+        city: getValues("city"),
+        state: getValues("state"),
+        country: getValues("country"),
+        zipcode: getValues("zipcode"),
+        address: getValues("address"),
+      },
+      paymentInfo: {
+        id:  "123456",
+        status: "success",
+        type: "Paypal",
+      },
+      customer: {
+        name: getValues("name"),
+        email: getValues("email"),
+        phone: getValues("phone"),
+      }
+
+    }
+    const data = await createOrderMutation(orderData)
+    router.push(`/order/success?orderId=${data._id}`)
+  }
+
+  const cashOnDeliveryHandler = async () => {
+    onClick(3)
+    const orderData = {
+      cart,
+      totalPrice: totalAmount,
+      shippingAddress: {
+        city: getValues("city"),
+        state: getValues("state"),
+        country: getValues("country"),
+        zipcode: getValues("zipcode"),
+        address: getValues("address"),
+      },
+      paymentInfo: {
+        id:  "123456",
+        status: "pending",
+        type: "Cash On Delivery",
+      },
+      customer: {
+        name: getValues("name"),
+        email: getValues("email"),
+        phone: getValues("phone"),
+      }
+
+    }
+    const data = await createOrderMutation(orderData)
+    router.push(`/order/success?orderId=${data._id}`)
+  }
+
   const paymentMode =
     active === 1
       ? "Debit/Credit"
       : active === 2
       ? "Paypal"
       : "Cash on Delivery";
-
-  const onCardSubmit = (data: Schema) => {
-    console.log(data);
-  };
 
   const validExpiry = isValidFormat(watch("expiry"));
 
@@ -64,27 +261,31 @@ const StepThree = () => {
             onClick={(e) => e.stopPropagation()}
             className={`py-4 bg-white transition duration-300`}
           >
-            <form className="flex flex-col gap-3 w-full p-5">
+            <form
+              onSubmit={paymentHandler}
+              className="flex flex-col gap-3 w-full p-5"
+            >
               <label className="relative w-full flex flex-col">
-                <span className="font-bold mb-3">Cardholder&#39;s Name</span>
+                <span className="font-bold mb-1">Cardholder&#39;s Name</span>
                 <input
-                  className={`rounded-md peer pl-12 pr-2 py-2 border-2 ${
+                  className={`rounded-md outline-none peer pl-12 pr-2 py-2 border-2 ${
                     errors.cardHolder?.message
                       ? "border-red-600"
                       : "border-gray-200"
                   } placeholder-gray-300`}
                   type="text"
-                  {...register("cardHolder")}
-                  name="card_holder"
+                  value={cardHolder}
+                  onChange={(event: React.ChangeEvent<HTMLInputElement>) => setCardHolder(event.target.value)}
+                  name="cardHolder"
                   placeholder="John Doe"
                 />
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   fill="none"
                   viewBox="0 0 24 24"
-                  stroke-width="1.5"
+                  strokeWidth="1.5"
                   stroke="currentColor"
-                  className="absolute bottom-0 left-0 -mb-0.5 transform translate-x-1/2 -translate-y-1/2 text-black peer-placeholder-shown:text-gray-300 h-6 w-6"
+                  className="absolute bottom-0 left-0 -mb-0.5 transform translate-x-1/2 -translate-y-1/2 text-gray-400  h-6 w-6"
                 >
                   <path
                     strokeLinecap="round"
@@ -93,51 +294,76 @@ const StepThree = () => {
                   />
                 </svg>
               </label>
-
               <label className="relative w-full flex flex-col">
-                <span className="font-bold mb-3">Card number</span>
-                <input
-                  className={`rounded-md peer pl-12 pr-2 py-2 border-2 ${
+                <span className="font-bold mb-1">Card number</span>
+
+                <CardNumberElement
+                  className={`rounded-md peer pl-12 pr-2 py-3 border-2 ${
                     errors.cardNumber?.message
                       ? "border-red-600"
                       : "border-gray-200"
                   } placeholder-gray-300`}
-                  type="text"
-                  placeholder="0000 0000 0000"
-                  {...register("cardNumber")}
+                  options={{
+                    style: {
+                      base: {
+                        fontSize: "16px",
+                        color: "#444",
+                      },
+                      empty: {
+                        color: "#999999",
+                        backgroundColor: "transparent",
+                        "::placeholder": {
+                          color: "#99999970",
+                        },
+                      },
+                    },
+                  }}
                 />
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  className="absolute bottom-0 left-0 -mb-0.5 transform translate-x-1/2 -translate-y-1/2 text-black peer-placeholder-shown:text-gray-300 h-6 w-6"
+                  className="absolute bottom-0 left-0 -mb-0.5 transform translate-x-1/2 -translate-y-1/2 text-gray-400 h-6 w-6"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
                 >
                   <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
                     d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
                   />
                 </svg>
               </label>
-
               <div className="grid sm:grid-cols-2 grid-cols-1 gap-3">
                 <label className="relative flex-1 flex flex-col">
-                  <span className="font-bold mb-3">Expire date</span>
-                  <input
-                    className={`rounded-md peer pl-12 pr-2 py-2 border-2 ${
-                      errors.expiry?.message || validExpiry
+                  <span className="font-bold mb-1">Expire date</span>
+                  <CardExpiryElement
+                    className={`rounded-md peer pl-12 pr-2 py-3 border-2 ${
+                      errors.expiry?.message
                         ? "border-red-600"
                         : "border-gray-200"
                     } placeholder-gray-300`}
-                    type="text"
-                    {...register("expiry")}
-                    placeholder="MM/YY"
+                    options={{
+                      style: {
+                        base: {
+                          fontSize: "16px",
+
+                          color: "#444",
+                        },
+                        empty: {
+                          color: "#99999930",
+                          backgroundColor: "transparent",
+                          "::placeholder": {
+                            color: "#99999970",
+                          },
+                        },
+                      },
+                    }}
                   />
+
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
-                    className="absolute bottom-0 left-0 -mb-0.5 transform translate-x-1/2 -translate-y-1/2 text-black peer-placeholder-shown:text-gray-300 h-6 w-6"
+                    className="absolute bottom-0 left-0 -mb-0.5 transform translate-x-1/2 -translate-y-1/2 text-gray-400 h-6 w-6"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -150,9 +376,8 @@ const StepThree = () => {
                     />
                   </svg>
                 </label>
-
                 <label className="relative flex-1 flex flex-col">
-                  <span className="font-bold flex items-center gap-3 mb-3">
+                  <span className="font-bold flex items-center gap-3 mb-1">
                     CVC/CVV
                     <span className="relative group">
                       <span className="hidden group-hover:flex justify-center items-center px-2 py-1 text-xs absolute -right-2 transform translate-x-full -translate-y-1/2 w-max top-1/2 bg-black text-white">
@@ -174,17 +399,29 @@ const StepThree = () => {
                       </svg>
                     </span>
                   </span>
-                  <input
-                    className={`rounded-md peer pl-12 pr-2 py-2 border-2 ${
+                  <CardCvcElement
+                    className={`rounded-md peer pl-12 pr-2 py-3 border-2 ${
                       errors.cvv?.message ? "border-red-600" : "border-gray-200"
                     } placeholder-gray-300`}
-                    type="password"
-                    {...register("cvv")}
-                    placeholder="&bull;&bull;&bull;"
+                    options={{
+                      style: {
+                        base: {
+                          fontSize: "16px",
+                          color: "#444",
+                        },
+                        empty: {
+                          color: "#99999930",
+                          backgroundColor: "transparent",
+                          "::placeholder": {
+                            color: "#99999970",
+                          },
+                        },
+                      },
+                    }}
                   />
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
-                    className="absolute bottom-0 left-0 -mb-0.5 transform translate-x-1/2 -translate-y-1/2 text-black peer-placeholder-shown:text-gray-300 h-6 w-6"
+                    className="absolute bottom-0 left-0 -mb-0.5 transform translate-x-1/2 -translate-y-1/2 text-gray-400 h-6 w-6"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -198,9 +435,8 @@ const StepThree = () => {
                   </svg>
                 </label>
               </div>
-
               <div className="mt-4 max-w-[150px] w-full">
-                <Button label="Submit" onClick={handleSubmit(onCardSubmit)} />
+                <Button type="submit" label="Submit" onClick={() => {}} />
               </div>
             </form>
           </div>
@@ -230,14 +466,14 @@ const StepThree = () => {
             className={`py-4 bg-white transition duration-300`}
           >
             <div className="max-w-[200px] w-full">
-              <Button label="Pay Now" onClick={() => {}} />
+              <Button label="Pay Now" onClick={paypalPaymentHandler} />
             </div>
           </div>
         )}
       </div>
 
       <div
-        onClick={() => onClick(3)}
+        onClick={cashOnDeliveryHandler}
         className="w-full bg-white shadow-sm rounded-md p-4 border relative cursor-pointer"
       >
         <div className="flex items-center gap-2">
@@ -254,9 +490,9 @@ const StepThree = () => {
         </div>
       </div>
 
-      {paymentMode}
+   
     </div>
   );
 };
 
-export default StepThree;
+export default forwardRef(StepThree);

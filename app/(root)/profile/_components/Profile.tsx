@@ -38,8 +38,9 @@ const Profile = () => {
 
   const handleLogout = async () => {
     await logout()
-    router.push("/login")
+    router.push("/auth/login")
   }
+  
   return (
     <div className="container py-4 my-8 flex md:flex-row flex-col gap-8">
       <div className="w-[250px] shadow rounded max-h-[400px] h-full  flex flex-col gap-2 p-2">

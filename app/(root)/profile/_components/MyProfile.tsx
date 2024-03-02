@@ -11,11 +11,15 @@ import useProfile from "@/hooks/queries/useProfile";
 import { FaRegEdit } from "react-icons/fa";
 import { MdAlternateEmail } from "react-icons/md";
 import Button from "@/components/buttons/Button";
-import { axiosInstance } from "@/config/api";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "react-toastify";
+import useAxiosPrivate from "@/hooks/useAxiosPrivate";
 
 type Schema = z.infer<typeof EditProfileSchema>;
 const MyProfile = () => {
   const { customer } = useProfile();
+  const queryClient = useQueryClient();
+  const axiosPrivate = useAxiosPrivate();
   const {
     register,
     formState: { errors },
@@ -25,6 +29,48 @@ const MyProfile = () => {
     resolver: zodResolver(EditProfileSchema),
   });
   const hiddenFileInput = useRef<HTMLInputElement>(null);
+  
+  const { mutateAsync: updateProfileMutation, isPending } = useMutation({
+    mutationFn: async (data: Schema) => {
+      const response = await axiosPrivate.patch("/customers/profile", data);
+      return response.data;
+    },
+
+    onSuccess: (data) => {
+      toast.success("Profile updated successfully");
+
+      queryClient.invalidateQueries({
+        queryKey: ["customers"],
+      });
+    },
+    onError: (err: any) => toast.error(err?.response?.data.message),
+  });
+
+  const { mutateAsync: updateProfilePictureMutation } = useMutation({
+    mutationFn: async (data: File) => {
+      const formData = new FormData();
+      formData.append("profileImg", data);
+      const response = await axiosPrivate.patch(
+        "/customers/profile/picture",
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+      return response.data;
+    },
+
+    onSuccess: () => {
+      toast.success("Profile picture updated successfully");
+
+      queryClient.invalidateQueries({
+        queryKey: ["customers"],
+      });
+    },
+    onError: (err: any) => toast.error(err?.response?.data.message),
+  });
 
   useEffect(() => {
     if (customer) {
@@ -36,8 +82,8 @@ const MyProfile = () => {
     }
   }, [customer, setValue]);
 
-  const onSubmit = (data: Schema) => {
-    console.log(data);
+  const onSubmit = async (data: Schema) => {
+    await updateProfileMutation(data);
   };
 
   const handleClick = () => {
@@ -50,14 +96,7 @@ const MyProfile = () => {
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
     const file = event.target.files![0];
-    // const formData = new FormData();
-    // formData.append("image", file);
-    // const { data } = await axiosInstance.post("/customers/edit-profile-image", formData, {
-    //   headers: {
-    //     "Content-Type": "multipart/form-data",
-    //   },
-    // });
-    console.log(file);
+    await updateProfilePictureMutation(file);
   };
 
   return (
@@ -128,8 +167,13 @@ const MyProfile = () => {
         </div>
         <TextArea register={register} id="bio" label="Bio" />
 
-        <div className="w-[150px]">
-          <Button label="Save" onClick={handleSubmit(onSubmit)} />
+        <div className="w-[120px]">
+          <Button
+            disabled={isPending}
+            loading={isPending}
+            label="Save"
+            onClick={handleSubmit(onSubmit)}
+          />
         </div>
       </form>
     </>

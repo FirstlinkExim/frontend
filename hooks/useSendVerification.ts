@@ -19,7 +19,8 @@ const useSendVerification = () => {
         "/customers/resend-verification",
         { email }
       );
-      toast.success(data.message)
+  
+      
       return data
     } catch (error) {
       let message;
@@ -30,7 +31,7 @@ const useSendVerification = () => {
         message = "An unexpected error occurred.";
       }
       setError(message);
-      toast.error(message)
+      toast.error(message, { position: "top-center"})
     } finally {
       setLoading(false);
       toast.dismiss();
